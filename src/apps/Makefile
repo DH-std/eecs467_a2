@@ -58,7 +58,7 @@ $(BIN_EECS467_GUI_EXAMPLE): gui_example.o $(LIB_EECS467) $(LIBDEPS) $(LIB_VXGTK)
 
 $(BIN_EECS467_MASK): a2_mask.o $(LIB_EECS467) $(LIBDEPS) $(LIB_VXGTK) $(LIB_VXGL) $(LIB_VX)
 	@echo "\t$@"
-	@$(CC) -o $@ $^ $(LDFLAGS) $(LIB_EECS467)
+	@$(CXX) -o $@ $^ $(LDFLAGS) $(LIB_EECS467)
 
 $(BIN_EECS467_REXARM_EXAMPLE): rexarm_example.o $(LIBDEPS)
 	@echo "\t$@"
