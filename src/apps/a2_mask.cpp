@@ -115,10 +115,10 @@ mouse_event (vx_event_handler_t *vxeh, vx_layer_t *vl, vx_camera_pos_t *pos, vx_
             }
 
             if (ground[1] > state->y_min) {
-                state->y_max = ground[1];
+                state->y_max = -ground[1];
             } else {
                 state->y_max = state->y_min;
-                state->y_min = ground[1];
+                state->y_min = -ground[1];
             }
             state->click_count = 0;
 
@@ -130,11 +130,6 @@ mouse_event (vx_event_handler_t *vxeh, vx_layer_t *vl, vx_camera_pos_t *pos, vx_
             fs << ground_to_pixel(state->y_max, state->img_height/2., state) << " ";
         
             fs.close();
-
-
-
-
-
         }
     }
 
