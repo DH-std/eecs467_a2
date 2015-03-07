@@ -38,7 +38,9 @@ struct state_t {
     getopt_t        *gopt;
     parameter_gui_t *pg;
 
-    // image stuff 
+    // image stuff
+    bool f_flag; 
+    image_u32_t *im;
     image_source_t *isrc;
     image_source_data_t *frmd; 
     char *img_src;
@@ -79,7 +81,7 @@ my_param_changed (parameter_listener_t *pl, parameter_gui_t *pg, const char *nam
 }
 
 int ground_to_pixel(double ground, double offset, state_t *state) {
-    return ground*state->img_width/2.+offset;
+    return ground*state->img_width+offset;
 }
 
     static int
@@ -101,13 +103,18 @@ mouse_event (vx_event_handler_t *vxeh, vx_layer_t *vl, vx_camera_pos_t *pos, vx_
 
         printf ("Mouse clicked at coords: [%8.3f, %8.3f]  Ground clicked at coords: [%6.3f, %6.3f]\n",
                 mouse->x, mouse->y, ground[0], ground[1]);
-        
+
         if(state->click_count == 0) {
             state->x_min = ground[0];
-            state->y_min = ground[1];
+            state->y_min = -ground[1];
             state->click_count = 1;
         } else {
-            if (ground[0] > state->x_min) {
+            state->x_min = fmin(state->x_min,ground[0]);
+            state->x_max = fmax(state->x_min,ground[0]);
+            state->y_min = fmin(state->y_min,-ground[1]);
+            state->y_max = fmax(state->y_min,-ground[1]);
+
+            /*if (ground[0] > state->x_min) {
                 state->x_max = ground[0];
             } else {
                 state->x_max = state->x_min;
@@ -115,29 +122,45 @@ mouse_event (vx_event_handler_t *vxeh, vx_layer_t *vl, vx_camera_pos_t *pos, vx_
             }
 
             if (ground[1] > state->y_min) {
-                state->y_max = ground[1];
+                state->y_max = -ground[1];
             } else {
                 state->y_max = state->y_min;
-                state->y_min = ground[1];
-            }
+                state->y_min = -ground[1];
+            }*/
+
             state->click_count = 0;
+            int pxxmin = ground_to_pixel(state->x_min, state->img_width/2., state);
+            int pxxmax = ground_to_pixel(state->x_max, state->img_width/2., state);
+            int pxymin = ground_to_pixel(state->y_min, state->img_height/2., state);
+            int pxymax = ground_to_pixel(state->y_max, state->img_height/2., state);
 
             fstream fs;
             fs.open("mask.txt", fstream::out);
-            fs << ground_to_pixel(state->x_min, state->img_width/2., state) << " ";
-            fs << ground_to_pixel(state->x_max, state->img_width/2., state) << " ";
-            fs << ground_to_pixel(state->y_min, state->img_height/2., state) << " ";
-            fs << ground_to_pixel(state->y_max, state->img_height/2., state) << " ";
-        
+            fs << pxxmin << " " << pxxmax << " " << pxymin << " " << pxymax << endl;
             fs.close();
 
+            cout << "masking" << endl;
+            
+            for(int y = 0; y < state->img_height; y++){
+                for(int x = 0; x < state->img_width; x++){
+                    if(x < pxxmin || x > pxxmax ||
+                       y < pxymin || y > pxymax ){
+                        state->im->buf[y*state->im->stride+x] = 0x00000000;
+                    }
+                }
+            }
+            cout << "show" << endl;
+            vx_object_t *vim = vxo_image_from_u32(state->im, VXO_IMAGE_FLIPY,
+                                                  VX_TEX_MIN_FILTER | VX_TEX_MAG_FILTER);
 
-
-
-
+            const double scale = 1./state->im->width;
+            vx_buffer_add_back (vx_world_get_buffer (state->vxworld, "image"),
+                                vxo_chain (vxo_mat_scale3 (scale, scale, 1.0),
+                                vxo_mat_translate3 (-state->im->width/2., -state->im->height/2., 0.),
+                                vim));
+            vx_buffer_swap (vx_world_get_buffer (state->vxworld, "image"));
         }
     }
-
 
     // store previous mouse event to see if the user *just* clicked or released
     state->last_mouse_event = *mouse;
@@ -316,11 +339,10 @@ state_destroy (state_t *state)
     free (state);
 }
 
-image_from _file(){
-
-    image create_from_ppm(file name);
+image_u32_t * img_from_file(char *file_name){
+    cout << "setdy" << endl;
+    return image_u32_create_from_pnm(file_name);
 }
-
 
 image_u32_t * get_camera_img(state_t *state){
     state->isrc =  image_source_open(state->img_src);
@@ -348,35 +370,36 @@ image_u32_t * get_camera_img(state_t *state){
     }
 
     // Handle frame
-    image_u32_t *im = image_convert_u32 (frmd);
-    state->img_height = im->height;
-    state->img_width = im->width;
-
-    return im;
+    return image_convert_u32 (frmd);
 }
 
 bool display_img(image_u32_t *im, state_t *state){
     if (im == NULL)
         return false;    
-
-    image_source_t *isrc = state->isrc;
-
-    vx_object_t *vim = vxo_image_from_u32(im,
-            VXO_IMAGE_FLIPY,
-            VX_TEX_MIN_FILTER | VX_TEX_MAG_FILTER);
+    
+    state->im = im;
+    state->img_height = im->height;
+    state->img_width = im->width;
+    
+    vx_object_t *vim = vxo_image_from_u32(im, VXO_IMAGE_FLIPY,
+                                          VX_TEX_MIN_FILTER | VX_TEX_MAG_FILTER);
 
     // render the image centered at the origin and at a normalized scale of +/-1 unit in x-dir
-    const double scale = 2./im->width;
+    const double scale = 1./im->width;
     vx_buffer_add_back (vx_world_get_buffer (state->vxworld, "image"),
-            vxo_chain (vxo_mat_scale3 (scale, scale, 1.0),
-                vxo_mat_translate3 (-im->width/2., -im->height/2., 0.),
-                vim));
+                        vxo_chain (vxo_mat_scale3 (scale, scale, 1.0),
+                        vxo_mat_translate3 (-im->width/2., -im->height/2., 0.),
+                        vim));
     vx_buffer_swap (vx_world_get_buffer (state->vxworld, "image"));
     //image_u32_destroy (im);
-    fflush (stdout);
 
+    if(state->f_flag)
+        return true;
+
+    image_source_t *isrc = state->isrc;
     image_source_data_t *frmd = state->frmd;
     isrc->release_frame (isrc, frmd);
+    return true;
 }
 
     int
@@ -401,6 +424,7 @@ main (int argc, char *argv[])
     // cameras imagesource can find and picks the first url it finds.
     if (strncmp (getopt_get_string (state->gopt, "image-path"), "", 1)) {
         state->img_src = strdup(getopt_get_string (state->gopt, "image-path"));
+        state->f_flag = true;
         cout << "ppm image: " << state->img_src << endl;
     } 
     else {
@@ -419,6 +443,7 @@ main (int argc, char *argv[])
         }
 
         zarray_get (urls, 0, &state->img_src);
+        state->f_flag = false;
     }
 
     if (getopt_get_bool (state->gopt, "list")) {
@@ -440,17 +465,17 @@ main (int argc, char *argv[])
     pg_add_listener (state->pg, my_listener);
 
 
-    if (strncmp (getopt_get_string (state->gopt, "image-path"), "", 1)) {
+    if (state->f_flag) {
+        cout << "ready" << endl;
+        display_img(img_from_file(state->img_src), state);
     } else {
         display_img(get_camera_img(state), state);
     }
-
 
     eecs467_gui_run (&state->vxapp, state->pg, 1024, 768);
 
     // Quit when GTK closes
     state->running = 0;
-    pthread_join (state->animate_thread, NULL);
 
     // Cleanup
     free (my_listener);
