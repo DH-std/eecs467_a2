@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <cstdlib>
+#include <iostream>
 
 #include <lcm/lcm.h>
 #include "lcmtypes/dynamixel_command_list_t.h"
@@ -18,8 +19,11 @@
 #include "common/getopt.h"
 #include "common/timestamp.h"
 #include "math/math_util.h"
+#include "math/fasttrig.h"
 
 #define NUM_SERVOS 6
+
+using namespace std;
 
 typedef struct state state_t;
 struct state
@@ -38,6 +42,12 @@ struct state
     double y;
     double z;
     double tilt;
+
+    double base_height;
+    double upper_arm;
+    double lower_arm;
+    double palm_length;
+    double finger_length;
 };
 
 
@@ -58,7 +68,7 @@ status_handler (const lcm_recv_buf_t *rbuf,
 void *
 status_loop (void *data)
 {
-    state_t *state = data;
+    state_t *state = (state_t *)data;
     dynamixel_status_list_t_subscribe (state->lcm,
                                        state->status_channel,
                                        status_handler,
@@ -76,19 +86,34 @@ status_loop (void *data)
 void *
 command_loop (void *user)
 {
-    state_t *state = user;
+    state_t *state = (state_t *)user;
     const int hz = 30;
 
     dynamixel_command_list_t cmds;
     cmds.len = NUM_SERVOS;
-    cmds.commands = (dynamixel_command_t *) calloc (NUM_SERVOS, sizeof(dynamixel_command_t));
- 
-    cmds.commands[0].position_radians = atan2(state->y, state->x); 
-    cmds.commands[1].position_radians = M_PI/2-atan2(state->y, state->x);
-    cmds.commands[2].position_radians = atan2(state->y, state->x);
-    cmds.commands[3].position_radians = atan2(state->y, state->x);
-    cmds.commands[4].position_radians = atan2(state->y, state->x);
-    cmds.commands[5].position_radians = atan2(state->y, state->x);
+    cmds.commands = (dynamixel_command_t *) calloc (NUM_SERVOS, sizeof(dynamixel_command_t)); 
+
+    double d1 = state->base_height;
+    double d2 = state->upper_arm;
+    double d3 = state->lower_arm;
+    double d4 = state->palm_length;
+    double h = state->finger_length+state->z;
+    double x = state->x;
+    double y = state->y;
+    double r = sqrt(x*x+y*y);
+    double m2 = x*x+y*y+(d4+h-d1)*(d4+h-d1); 
+
+    cmds.commands[0].position_radians = atan2(y, x); 
+    cmds.commands[1].position_radians = M_PI/2 
+        - atan2(d4+h-d1,r) - facos((-d3*d3+d2*d2+m2)/(2*d2*sqrt(m2)));
+    cmds.commands[2].position_radians = M_PI/2
+        - facos((-m2+d2*d2+d3*d3)/(2*d2*d3));
+    cmds.commands[3].position_radians = M_PI 
+        - cmds.commands[1].position_radians 
+        - cmds.commands[2].position_radians
+        - state->tilt;
+    cmds.commands[4].position_radians = 0;
+    cmds.commands[5].position_radians = 0;
 
     for (int id = 0; id < NUM_SERVOS; id++) {
         cmds.commands[id].speed = 0.1;
@@ -114,6 +139,11 @@ main (int argc, char *argv[])
     state->lcm = lcm_create (NULL);
     state->command_channel = "ARM_STATUS";
     state->status_channel = "ARM_COMMAND";
+    state->base_height = 11.7; // unit = cm
+    state->upper_arm = 10;
+    state->lower_arm = 10;
+    state->palm_length = 10;
+    state->finger_length = 8.2;
 
     cout << "x, y, z, tilt: ";
     cin >> state->x >> state->y >> state->z >> state->tilt;

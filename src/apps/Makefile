@@ -42,10 +42,12 @@ BIN_EECS467_MAEBOT_EXAMPLE = $(BIN_PATH)/eecs467_maebot_example
 BIN_EECS467_MAEBOT_VIDEO_TELOP = $(BIN_PATH)/eecs467_maebot_video_telop
 BIN_EECS467_MASK = $(BIN_PATH)/a2_mask
 BIN_EECS467_BLOB_DETECTOR = $(BIN_PATH)/eecs467_blob_detector
+BIN_EECS467_INVERSE_KINEMATICS = $(BIN_PATH)/a2_inverse_kinematics
 
 ALL = $(LIB_EECS467) $(BIN_EECS467_GUI_EXAMPLE) $(BIN_EECS467_REXARM_EXAMPLE) \
       $(BIN_EECS467_MAEBOT_EXAMPLE) $(BIN_EECS467_MAEBOT_VIDEO_TELOP) \
-      $(BIN_EECS467_BLOB_DETECTOR) #$(BIN_EECS467_MASK)
+      $(BIN_EECS467_BLOB_DETECTOR) $(BIN_EECS467_MASK) \
+      $(BIN_EECS467_INVERSE_KINEMATICS)
 
 all: $(ALL)
 
@@ -57,11 +59,15 @@ $(BIN_EECS467_GUI_EXAMPLE): gui_example.o $(LIB_EECS467) $(LIBDEPS) $(LIB_VXGTK)
 	@echo "\t$@"
 	@$(CC) -o $@ $^ $(LDFLAGS) $(LIB_EECS467)
 
-#$(BIN_EECS467_MASK): a2_mask.o $(LIB_EECS467) $(LIBDEPS) $(LIB_VXGTK) $(LIB_VXGL) $(LIB_VX)
-#	@echo "\t$@"
-#	@$(CXX) -o $@ $^ $(LDFLAGS) $(LIB_EECS467)
+$(BIN_EECS467_MASK): a2_mask.o $(LIB_EECS467) $(LIBDEPS) $(LIB_VXGTK) $(LIB_VXGL) $(LIB_VX)
+	@echo "\t$@"
+	@$(CXX) -o $@ $^ $(LDFLAGS) $(LIB_EECS467)
 
 $(BIN_EECS467_REXARM_EXAMPLE): rexarm_example.o $(LIBDEPS)
+	@echo "\t$@"
+	@$(CC) -o $@ $^ $(LDFLAGS)
+
+$(BIN_EECS467_INVERSE_KINEMATICS): a2_inverse_kinematics.o $(LIBDEPS)
 	@echo "\t$@"
 	@$(CC) -o $@ $^ $(LDFLAGS)
 
