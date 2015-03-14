@@ -67,9 +67,9 @@ $(BIN_EECS467_REXARM_EXAMPLE): rexarm_example.o $(LIBDEPS)
 	@echo "\t$@"
 	@$(CC) -o $@ $^ $(LDFLAGS)
 
-$(BIN_EECS467_INVERSE_KINEMATICS): a2_inverse_kinematics.o $(LIBDEPS)
+$(BIN_EECS467_INVERSE_KINEMATICS): a2_inverse_kinematics.o $(LIB_EECS467) $(LIBDEPS)
 	@echo "\t$@"
-	@$(CC) -o $@ $^ $(LDFLAGS)
+	@$(CXX) -o $@ $^ $(LDFLAGS)
 
 $(BIN_EECS467_MAEBOT_EXAMPLE): maebot_example.o $(LIBDEPS)
 	@echo "\t$@"
