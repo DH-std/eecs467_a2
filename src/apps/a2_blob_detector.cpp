@@ -4,6 +4,8 @@
 #include <lcm/lcm-cpp.hpp>
 #include <deque>
 #include <vector>
+#include <string>
+#include <string.h>
 #include <imagesource/image_u32.h>
 
 using namespace std;
@@ -11,13 +13,7 @@ using namespace std;
 #define minArea 10 //min area to be considered a region
 
 
-int Hmin, Hmax, Smin, Smax, Vmin, Vmax;
-vector<int> vis;
-vector<region> regList;
-int regNum;
-int width, height, stride;
-
-void HSV(int val, int * H, double * S, double *V){
+void blob_detector::HSV(int val, int * H, double * S, double *V){
 
 	//convert to rgba first
 
@@ -86,7 +82,7 @@ void HSV(int val, int * H, double * S, double *V){
 	*V = cmax;
 }	
 
-bool checkpoint(int t, image_u32_t * im){
+bool blob_detector::checkpoint(int t, image_u32_t * im){
 	double  S, V;
 	int H;
 	HSV(t, &H, &S, &V);
@@ -104,7 +100,7 @@ bool checkpoint(int t, image_u32_t * im){
 	return false;
 }
 
-void bucketfill(int curX, int curY, image_u32_t * im,
+void blob_detector::bucketfill(int curX, int curY, image_u32_t * im,
 					 deque<int> *nextcoord, region * reg){
 
 
@@ -173,22 +169,27 @@ void bucketfill(int curX, int curY, image_u32_t * im,
 
 }
 
-int main(){
+blob_detector::blob_detector(){
+	regNum = 1;
+}
+
+blob_detector::blob_detector(string path_name, int H1, int H2, int S1, int S2, int V1, int V2){
 
 	//initialize HSV values from task2
-
-	Hmin = 55;
-	Hmax = 75;
-	Smin = 30;
-	Smax = 35;
-	Vmin = 60;
-	Vmax = 65;
+	Hmin = H1;
+	Hmax = H2;
+	Smin = S1;
+	Smax = S2;
+	Vmin = V1;
+	Vmax = V2;
 
 	regNum = 1;
 
 	//load pnm image into image_u32_t
-	char path[100] = "path_name"; // need to insert path name here
-	image_u32_t* image = image_u32_create_from_pnm(path);
+	char path[100];
+
+	strcpy(path, path_name.c_str());
+	image = image_u32_create_from_pnm(path);
 
 	width = image->width;
 	height = image->height;
@@ -196,6 +197,9 @@ int main(){
 
 	vis.assign(width*height, 0);
 
+}
+
+void blob_detector::process(){
 	//looping to find start positions
 	for(int y=0; y < image->height; y++){
 		for(int x=0; x < image->width; x++){
@@ -223,6 +227,7 @@ int main(){
 		}
 	}
 
-
-return 0;	
+}
+int main(){
+	
 }
