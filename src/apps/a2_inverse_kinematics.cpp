@@ -9,16 +9,18 @@
 #include <pthread.h>
 #include <cstdlib>
 #include <iostream>
+#include <string>
+#include <lcm/lcm-cpp.hpp>
+#include <vector>
 
-#include <lcm/lcm.h>
-#include "lcmtypes/dynamixel_command_list_t.h"
-#include "lcmtypes/dynamixel_command_t.h"
-#include "lcmtypes/dynamixel_status_list_t.h"
-#include "lcmtypes/dynamixel_status_t.h"
+#include "lcmtypes/dynamixel_command_list_t.hpp"
+#include "lcmtypes/dynamixel_command_t.hpp"
+#include "lcmtypes/dynamixel_status_list_t.hpp"
+#include "lcmtypes/dynamixel_status_t.hpp"
 
 #include "common/getopt.h"
 #include "common/timestamp.h"
-#include "math/math_util.h"
+//#include "math/math_util.h"
 #include "math/fasttrig.h"
 
 #define NUM_SERVOS 6
@@ -31,7 +33,7 @@ struct state
     getopt_t *gopt;
 
     // LCM
-    lcm_t *lcm;
+    lcm::LCM *lcm;
     const char *command_channel;
     const char *status_channel;
 
@@ -50,36 +52,32 @@ struct state
     double finger_length;
 };
 
+class lcmHandler{
+    private: 
+        state_t *state;
 
-static void
-status_handler (const lcm_recv_buf_t *rbuf,
-                const char *channel,
-                const dynamixel_status_list_t *msg,
-                void *user)
-{
-    // Print out servo positions
-    for (int id = 0; id < msg->len; id++) {
-        dynamixel_status_t stat = msg->statuses[id];
-        printf ("[id %d]=%6.3f ",id, stat.position_radians);
-    }
-    printf ("\n");
-}
+    public:
+        lcmHandler(state_t *s) : state(s) {}
+
+        void handleStatus(const lcm::ReceiveBuffer *rbuf,
+                          const std::string& channel,
+                          const dynamixel_status_list_t *msg)
+        {
+            assert(channel == "ARM_STATUS");
+            for (int id = 0; id < msg->len; id++) {
+                dynamixel_status_t stat = msg->statuses[id];
+              //  printf ("[id %d]=%6.3f ",id, stat.position_radians);
+            }
+            //printf ("\n");
+        }
+};
 
 void *
-status_loop (void *data)
+status_loop (void *user)
 {
-    state_t *state = (state_t *)data;
-    dynamixel_status_list_t_subscribe (state->lcm,
-                                       state->status_channel,
-                                       status_handler,
-                                       state);
-    const int hz = 15;
-    while (1) {
-        int status = lcm_handle_timeout (state->lcm, 1000/hz);
-        if (status <= 0)
-            continue;
-    }
-
+    state_t *state = (state_t *)user;
+    cout << "status looping maybe" << endl;
+    while(state->lcm->handle() == 0);
     return NULL;
 }
 
@@ -87,11 +85,12 @@ void *
 command_loop (void *user)
 {
     state_t *state = (state_t *)user;
-    const int hz = 30;
+    const double hz = 0.2;
 
     dynamixel_command_list_t cmds;
     cmds.len = NUM_SERVOS;
-    cmds.commands = (dynamixel_command_t *) calloc (NUM_SERVOS, sizeof(dynamixel_command_t)); 
+    cmds.commands = vector<dynamixel_command_t>(NUM_SERVOS); 
+    fasttrig_init();
 
     double d1 = state->base_height;
     double d2 = state->upper_arm;
@@ -116,19 +115,22 @@ command_loop (void *user)
     cmds.commands[5].position_radians = 0;
 
     for (int id = 0; id < NUM_SERVOS; id++) {
-        cmds.commands[id].speed = 0.1;
-        cmds.commands[id].max_torque = 0.5;
+        cmds.commands[id].speed = 0.2;
+        cmds.commands[id].max_torque = 0.7;
+        cout << cmds.commands[id].position_radians << " ";
     }
+    cout << endl;
 
     while (1) {
+
+        cout << "lol" << endl; 
         for (int id = 0; id < NUM_SERVOS; id++)
             cmds.commands[id].utime = utime_now ();
 
-        dynamixel_command_list_t_publish (state->lcm, state->command_channel, &cmds);
+        state->lcm->publish(state->command_channel, &cmds);
         usleep (1000000/hz);
     }
 
-    free (cmds.commands);
     return NULL;
 }
 
@@ -136,14 +138,19 @@ int
 main (int argc, char *argv[])
 {
     state_t *state = new state_t;
-    state->lcm = lcm_create (NULL);
-    state->command_channel = "ARM_STATUS";
-    state->status_channel = "ARM_COMMAND";
+    state->lcm = new lcm::LCM;
+    state->command_channel = "ARM_COMMAND";
+    state->status_channel = "ARM_STATUS";
     state->base_height = 11.7; // unit = cm
     state->upper_arm = 10;
     state->lower_arm = 10;
     state->palm_length = 10;
     state->finger_length = 8.2;
+
+    lcmHandler handler(state);
+    state->lcm->subscribe(state->status_channel,
+                          &lcmHandler::handleStatus,
+                          &handler);
 
     cout << "x, y, z, tilt: ";
     cin >> state->x >> state->y >> state->z >> state->tilt;
@@ -151,10 +158,10 @@ main (int argc, char *argv[])
     pthread_create (&state->status_thread, NULL, status_loop, state);
     pthread_create (&state->command_thread, NULL, command_loop, state);
 
-    pthread_join (state->status_thread, NULL);
     pthread_join (state->command_thread, NULL);
+    pthread_join (state->status_thread, NULL);
 
-    lcm_destroy (state->lcm);
+    delete state->lcm;
     free (state);
 
     return 0;
