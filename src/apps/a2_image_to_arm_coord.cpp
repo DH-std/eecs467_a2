@@ -1,13 +1,20 @@
 #include <math.h>
 #include <stdlib.h>
+#include <iostream>
 #include <imagesource/image_u32.h>
-#include "lcmtypes/dynamixel_status_list_t.lcm"
-#include "lcmtypes/dynamixel_status_t.lcm"
+#include "lcmtypes/dynamixel_status_list_t.h"
+#include "lcmtypes/dynamixel_status_t.h"
+#include "a2_image_to_arm_coord.hpp"
+#include <stdio.h>
+
 #define PI 3.141
+
+//#include "a2_inverse_kinematics.cpp"
+
 using namespace std;
 
 //convert camera frame to arm frame
-void calibrate( int r1x, int r1y, int r2x, int r2y, int c1x, int c1y, int c2x , int c2y){
+void image_to_arm::calibrate( int r1x, int r1y, int r2x, int r2y, int c1x, int c1y, int c2x , int c2y){
 	double robot_center_x;
 	double robot_center_y;
 	double camera_center_x;
@@ -66,46 +73,47 @@ void calibrate( int r1x, int r1y, int r2x, int r2y, int c1x, int c1y, int c2x , 
 
 }
 
-void translate(double x, double y, double *outx, double *outy){
+void image_to_arm::translate(double x, double y, double *outx, double *outy){
 	*outx = s*x*cos(theta) - s*y*sin(theta) + tx;
 	*outy = s*x*sin(theta) + s*y*cos(theta) + ty;
 }
 
 
-void save_first_square(){
+void image_to_arm::save_first_square(){
 	int x;
 	//top left corner (from camera's point of view)
-	cin >> x; 
+	std::cin >> x; 
 	//type 1 to 
 	if(x==1){
 		//inverse kinematic current servo 
-		//save left corner value
-		r1x = ;
-		r1y = ;
+		// //save left corner value
+		// r1x = ;
+		// r1y = ;
 	}
 }
 
-void save_last_square(){
+void image_to_arm::save_last_square(){
 	int x;
 	//bottom right corner
-	cin >> x;
+	std::cin >> x;
 	if(x==1){
 		//inverse kinematic 
 		//save left corner value
-		r2x = ;
-		r2y = ;
+		// r2x = ;
+		// r2y = ;
 	}
 }
 
-void print(){
+void image_to_arm::print(){
 	
 }
 
-image_to_arm(){
+image_to_arm::image_to_arm(){
 
 }
 
-image_to_arm(char[100] path, int Hmin, int Hmax, int Vmin , int Vmax, int Smin, int Smax){
+
+image_to_arm::image_to_arm(string path, int Hmin, int Hmax, int Smin, int Smax, int Vmin , int Vmax){
 
 	path_name = path;
 	Hmin = H1;
@@ -115,5 +123,9 @@ image_to_arm(char[100] path, int Hmin, int Hmax, int Vmin , int Vmax, int Smin, 
 	Smin = S1;
 	Smax = S2;
 
+
+}
+
+int main(){
 
 }

@@ -1,5 +1,11 @@
 #ifndef __a2_blob_detector_H__
 #define __a2_blob_detector_H__
+#include <string>
+#include <vector>
+#include <deque>
+#include <imagesource/image_u32.h>
+
+using namespace std;
 
 class region{
 	public:
@@ -75,4 +81,25 @@ void region::setCenter(){
 	centerY = Ydiff/2;
 
 }
+
+class blob_detector{
+public:
+
+	int Hmin, Hmax, Smin, Smax, Vmin, Vmax;
+	vector<int> vis;
+	vector<region> regList;
+	int regNum;
+	int width, height, stride;
+	image_u32_t* image;
+	
+	blob_detector();
+	blob_detector(string path_name, int H1, int H2, int S1, int S2, int V1, int V2);
+
+	void bucketfill(int curX, int curY, image_u32_t * im, deque<int> *nextcoord, region * reg);
+	bool checkpoint(int t, image_u32_t * im);
+	void HSV(int val, int * H, double * S, double *V);
+	void process();
+
+
+};
 #endif
