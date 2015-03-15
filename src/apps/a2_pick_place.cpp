@@ -1,29 +1,58 @@
 #include "a2_pick_place.h"
 
-void a2_pick_place::pick(double x, double y, double z) {
-    // wrist -pi/2
-
- cout << "going to picked big hand open" << endl;   
-    move_hand(BIG_OPEN_HAND);
-
-// usleep(2000000);
-cout << "picked big hand open" << endl;
-    // inver
-cout << "going to picked big hand close" << endl;
-    move_hand(CLOSE_HAND);
-cout << "picked big hand close" << endl;
-    // inver back to 0
+void a2_pick_place::pick(double x, double y) {
+    ik.move(x, y, 7, BIG_OPEN_HAND);
+    usleep(1000000);
+    ik.move(x, y, 1.5, BIG_OPEN_HAND);
+    usleep(250000);
+    ik.move(x, y, 1.5, CLOSE_HAND);
+    usleep(1000000);
+    ik.move_origin(CLOSE_HAND);
+    usleep(1000000);
 }
 
-void a2_pick_place::place(double x, double y, double z) {
-    // wrist pi/2
-    // inver
-cout << "going to placed small hand open" << endl;
-    move_hand(SMALL_OPEN_HAND);
-cout << "placed small hand open" << endl;
-    // inver back to 0
+void a2_pick_place::place(double x, double y) {
+    ik.move(x, y, 7, CLOSE_HAND);
+    usleep(1000000);
+    ik.move(x, y, 3, CLOSE_HAND);
+    usleep(250000);
+    ik.move(x, y, 3, SMALL_OPEN_HAND);
+    usleep(250000);
+    ik.move(x, y, 7, SMALL_OPEN_HAND);
+    usleep(250000);
+    ik.move_origin(BIG_OPEN_HAND);
+    usleep(1000000);
 }
 
+void a2_pick_place::move_origin() {
+    ik.move_origin(CLOSE_HAND);
+}
+
+a2_pick_place::a2_pick_place() {
+    // NUM_SERVOS = 6;
+    // HAND_SERVO = 5;
+
+    // command_channel = "ARM_COMMAND";
+    // status_channel = "ARM_STATUS";    
+
+    // CLOSE_HAND = 1.5;
+    // BIG_OPEN_HAND = 0.8;
+    // SMALL_OPEN_HAND = 1.3;
+
+    // SPEED = 0.05;
+    // TORQUE = 0.35;
+
+    // arm_pos.resize(NUM_SERVOS, 0);
+
+
+    // lcm.subscribeFunction(status_channel, (void (*)(lcm::ReceiveBuffer*, string&, dynamixel_status_list_t*, void*) )status_handler, (void*) NULL);
+    // lcm.subscribeFunction(status_channel, status_handler, (void*) this);
+
+    // pthread_create(&lcm_handler_thread, NULL, lcm_handler, (void*) this);
+
+}
+
+/*
 void a2_pick_place::move_hand(double angle) {
     
     dynamixel_command_list_t cmds;
@@ -71,6 +100,7 @@ cout << "before arm_pos[HAND_SERVO] " << arm_pos[HAND_SERVO] << " angle " << ang
     cout << "after arm_pos[HAND_SERVO] " << arm_pos[HAND_SERVO] << " angle " << angle << " count: " << count << endl;
 }
 
+
 void status_handler(const lcm::ReceiveBuffer* rbuf, const std::string& channel, 
                                    const dynamixel_status_list_t *scan, void *user) {
     vector<double>& arm_pos = ((a2_pick_place*) user)->arm_pos;
@@ -93,31 +123,7 @@ void* lcm_handler(void* args) {
     }
     return NULL;
 }
-
-a2_pick_place::a2_pick_place() {
-    // NUM_SERVOS = 6;
-    // HAND_SERVO = 5;
-
-    // command_channel = "ARM_COMMAND";
-    // status_channel = "ARM_STATUS";    
-
-    // CLOSE_HAND = 1.5;
-    // BIG_OPEN_HAND = 0.8;
-    // SMALL_OPEN_HAND = 1.3;
-
-    // SPEED = 0.05;
-    // TORQUE = 0.35;
-
-    arm_pos.resize(NUM_SERVOS, 0);
-
-
-    // lcm.subscribeFunction(status_channel, (void (*)(lcm::ReceiveBuffer*, string&, dynamixel_status_list_t*, void*) )status_handler, (void*) NULL);
-    lcm.subscribeFunction(status_channel, status_handler, (void*) this);
-
-    pthread_create(&lcm_handler_thread, NULL, lcm_handler, (void*) this);
-
-}
-
+*/
 
 /*
 void* a2_pick_place::status_loop(void *data) {
