@@ -22,6 +22,8 @@
 #include "common/timestamp.h"
 // #include "math/math_util.h"
 
+#include "a2_inverse_kinematics.h"
+
 #include <iostream>
 
 #include <string>
@@ -29,18 +31,18 @@
 
 using namespace std;
 
-const int NUM_SERVOS = 6;
+// const int NUM_SERVOS = 6;
 const int HAND_SERVO = 5;
 
-const string command_channel = "ARM_COMMAND";
-const string status_channel = "ARM_STATUS";    
+// const string command_channel = "ARM_COMMAND";
+// const string status_channel = "ARM_STATUS";    
 
-const double CLOSE_HAND = 1.5;
+const double CLOSE_HAND = 1.56;
 const double BIG_OPEN_HAND = 0.8;
 const double SMALL_OPEN_HAND = 1.3;
 
-const double SPEED = 0.05;
-const double TORQUE = 0.35;
+// const double SPEED = 0.05;
+// const double TORQUE = 0.35;
 
 class a2_pick_place {
 public:
@@ -63,14 +65,14 @@ public:
     // static double SPEED;
     // static double TORQUE;
 
+
     vector<double> arm_pos;
 
-    // inverse kinematics
+    a2_inverse_kinematics ik;// inverse kinematics
 
-    void pick(double x, double y, double z);
-    void place(double x, double y, double z);
-
-    void move_hand(double angle);
+    void pick(double x, double y);
+    void place(double x, double y);
+    void move_origin();
 
     // void status_handler(const lcm::ReceiveBuffer* rbuf, const std::string& channel, 
     //                                const dynamixel_status_list_t *scan, void *user);
