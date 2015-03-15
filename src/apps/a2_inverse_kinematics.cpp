@@ -103,9 +103,9 @@ command_loop (void *user)
     double m2 = x*x+y*y+(d4+h-d1)*(d4+h-d1); 
 
     cmds.commands[0].position_radians = atan2(y, x); 
-    cmds.commands[1].position_radians = M_PI/2 
+    cmds.commands[1].position_radians = M_PI/2.0 
         - atan2(d4+h-d1,r) - facos((-d3*d3+d2*d2+m2)/(2*d2*sqrt(m2)));
-    cmds.commands[2].position_radians = M_PI/2
+    cmds.commands[2].position_radians = M_PI
         - facos((-m2+d2*d2+d3*d3)/(2*d2*d3));
     cmds.commands[3].position_radians = M_PI 
         - cmds.commands[1].position_radians 
