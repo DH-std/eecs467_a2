@@ -6,29 +6,47 @@
 #include <vector>
 #include <string>
 #include <string.h>
+#include <iostream>
+#include <stdio.h>
+#include "common/getopt.h"
 #include <imagesource/image_u32.h>
 
+#include <gtk/gtk.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <pthread.h>
 using namespace std;
 
-#define minArea 10 //min area to be considered a region
+#define minArea 1 //min area to be considered a region
 
 
-void blob_detector::HSV(int val, int * H, double * S, double *V){
+void blob_detector::HSV(uint32_t val, int * H, double * S, double *V){
 
 	//convert to rgba first
 
-	double r, g, b, a;
-	a = val / (1<<24);
+	//printf("val:0x%06x\n", val);
+	int rold, gold, bold;
 	val = val % (1<<24);
-	b = val / (1<<16) ;
-	val = val % 16;
-	g = val / (1 << 8);
-	val = val % 8;
-	r = val;
+	bold = val / (1<<16) ;
+	val = val % (1<<16);
+	gold = val / (1 << 8);
+	val = val % (1<<8);
+	rold = val;
 
-	r = r/255;
-	g = g/255;
-	b = b/255;
+	// printf("rold:%d\n", rold);
+	// printf("gold:%d\n", gold);
+	// printf("bold:%d\n", bold);
+
+	double r,g,b;
+	r = rold/255.0;
+	g = gold/255.0;
+	b = bold/255.0;
+
+	// printf("r:%f\n", r);
+	// printf("g:%f\n", g);
+	// printf("b:%f\n", b);
+	
 
 	double cmax, cmin, delta;
 	int col = 0;
@@ -37,7 +55,7 @@ void blob_detector::HSV(int val, int * H, double * S, double *V){
 		cmax = r;
 		col = 1;
 	}
-	else if( g >=r  && g >= a){
+	else if( g >=r  && g >= b){
 		cmax = g;
 		col = 2;
 	}
@@ -49,7 +67,7 @@ void blob_detector::HSV(int val, int * H, double * S, double *V){
 	if(r <=  b &&  r <= g){
 		cmin = r;
 	}
-	else if( g <=r  && g <= a){
+	else if( g <=r  && g <= b){
 		cmin = g;
 	}
 	else{
@@ -78,21 +96,32 @@ void blob_detector::HSV(int val, int * H, double * S, double *V){
 	}
 	else{
 		*S = delta/cmax;
+		*S *= 100;
 	}
 	*V = cmax;
+	*V *= 100;
 }	
 
 bool blob_detector::checkpoint(int t, image_u32_t * im){
 	double  S, V;
 	int H;
-	HSV(t, &H, &S, &V);
-	int Hval = H;
-	int Sval = S;
-	int Vval = V;
 
-	if((Hval < Hmax) && (Hval > Hmin) ){
-		if((Sval < Smax) && (Sval > Smin)){
-			if((Vval < Vmax) && (Vval > Vmin)){
+	int curY = t/stride;
+	int curX = t%stride;
+	uint32_t val = (im->buf)[curY*stride+curX];
+	HSV(val, &H, &S, &V);
+	int Hval = H;
+	double Sval = S;
+	double Vval = V;
+
+	// printf("curY:%d\n", curY);
+	// printf("curX:%d\n", curX);
+	// printf("Hval:%d\n", Hval);
+	// printf("Sval:%f\n", Sval);
+	// printf("Vval:%f\n", Vval);
+	if((Hval <= Hmax) && (Hval >= Hmin) ){
+		if((Sval <= Smax) && (Sval >= Smin)){
+			if((Vval <= Vmax) && (Vval >= Vmin)){
 				return true;
 			}
 		}
@@ -103,22 +132,22 @@ bool blob_detector::checkpoint(int t, image_u32_t * im){
 void blob_detector::bucketfill(int curX, int curY, image_u32_t * im,
 					 deque<int> *nextcoord, region * reg){
 
-
+	//printf("y:%d, x:%d\n",curY , curX);
 	//search surrounding neighbors
 	for(int i = 0; i < 8; i++){
 		int a,b;
 		switch(i){
 			case 0:
 				a = -1;
-				b = 1;
+				b = -1;
 				break;
 			case 1:
 				a = 0;
-				b = 1;
+				b = -1;
 				break;
 			case 2:
 				a = 1;
-				b = 1;
+				b = -1;
 				break;
 			case 3:
 				a = -1;
@@ -130,22 +159,24 @@ void blob_detector::bucketfill(int curX, int curY, image_u32_t * im,
 				break;
 			case 5:
 				a = -1;
-				b = -1;
+				b = 1;
 				break;
 			case 6:
 				a = 0;
-				b = -1;
+				b = 1;
 				break;
 			case 7:
 				a = 1;
-				b = -1;
+				b = 1;
 				break;
 		}
 
-
-		if( vis[(curY + b)*stride + (curX+a)] == false && checkpoint((curY + b)*stride + (curX+a), im)){
-			nextcoord->push_back((curY + b)*stride + (curX+a));
-			vis[(curY + b)*stride + (curX+a)] = true;
+		//printf("i:%d\n", i);
+		if(( ((curX+a) < width) && ((curX+a) > 0) && ((curY+b) > 0) && ((curY+b) < height)) == true){
+			if( vis[(curY + b)*stride + (curX+a)] == false && checkpoint((curY + b)*stride + (curX+a), im)){
+				nextcoord->push_back((curY + b)*stride + (curX+a));
+				vis[(curY + b)*stride + (curX+a)] = true;
+			}
 		}
 
 
@@ -163,7 +194,7 @@ void blob_detector::bucketfill(int curX, int curY, image_u32_t * im,
 		nextcoord->pop_front();
 		curY = n/stride;
 		curX = n%stride;
-
+		//usleep(500000);
 		bucketfill(curX, curY, im, nextcoord, reg);
 	}
 
@@ -171,10 +202,12 @@ void blob_detector::bucketfill(int curX, int curY, image_u32_t * im,
 
 blob_detector::blob_detector(){
 	regNum = 1;
+	gopt = getopt_create ();
 }
 
 blob_detector::blob_detector(string path_name, int H1, int H2, int S1, int S2, int V1, int V2){
-
+	
+	gopt = getopt_create ();
 	//initialize HSV values from task2
 	Hmin = H1;
 	Hmax = H2;
@@ -186,37 +219,54 @@ blob_detector::blob_detector(string path_name, int H1, int H2, int S1, int S2, i
 	regNum = 1;
 
 	//load pnm image into image_u32_t
-	char path[100];
+	char path[200];
 
 	strcpy(path, path_name.c_str());
 	image = image_u32_create_from_pnm(path);
-
+	if (image == NULL) {
+		printf("image %s unsuccesfully loaded\n", path);
+		exit(1);
+	}
+	else{
 	width = image->width;
 	height = image->height;
 	stride = image->stride;
 
-	vis.assign(width*height, 0);
+	printf("width:%d\n", width);
+	printf("height:%d\n", height);
+	printf("stride:%d\n", stride);
 
+	vis.assign(width*height, 0);
+	}
 }
 
 void blob_detector::process(){
+	
 	//looping to find start positions
-	for(int y=0; y < image->height; y++){
-		for(int x=0; x < image->width; x++){
+	for(int y=1; y < height - 1; y++){
+		for(int x=1; x < width -1; x++){
 
 			if(vis[y*stride+x] == false && checkpoint(y*stride+x, image)){
-
+				
+				printf("good\n");
 				deque<int> nextcoord;
 				region temp_reg(x, y, regNum);
+				printf("startx:%d\n", x);
+				printf("starty:%d\n", y);
 
 				vis[y*stride+x] = true;
+				printf("good2\n");
 				bucketfill(x, y, image , &nextcoord, &temp_reg );
-
+				printf("good3\n");
 				if(temp_reg.area >= minArea){
 					temp_reg.setCenter();
+					// printf("maxX:%d\n", temp_reg.maxX);
+					// printf("minX:%d\n", temp_reg.minX);
 					regList.push_back(temp_reg);
 					regNum++;
+						printf("reglist size: %d\n", regNum);
 				}
+				printf("good4\n");
 
 			}
 			else{
@@ -229,5 +279,17 @@ void blob_detector::process(){
 
 }
 int main(){
-	
+
+
+	string p = "/home/loren/Documents/Mich/eecs467a2/src/pics/corner_image_0.ppm";
+
+	blob_detector b1( p , 0,5,0,5,0,5);
+	b1.process();
+	printf("regNum:%d\n", b1.regNum);
+	//printf("HSV match: %d\n", b1.checkpoint(38*b1.width + 463, b1.image));
+	printf("centX: %d, centY: %d\n",b1.regList[0].centerX, b1.regList[0].centerY);
+	printf("centX: %d, centY: %d\n",b1.regList[1].centerX, b1.regList[1].centerY);
+	printf("centX: %d, centY: %d\n",b1.regList[2].centerX, b1.regList[2].centerY);
+	return 0;
+
 }
