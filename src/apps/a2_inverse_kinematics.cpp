@@ -1,168 +1,123 @@
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <math.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <pthread.h>
-#include <cstdlib>
-#include <iostream>
-#include <string>
-#include <lcm/lcm-cpp.hpp>
-#include <vector>
+#include "a2_inverse_kinematics.h"
 
-#include "lcmtypes/dynamixel_command_list_t.hpp"
-#include "lcmtypes/dynamixel_command_t.hpp"
-#include "lcmtypes/dynamixel_status_list_t.hpp"
-#include "lcmtypes/dynamixel_status_t.hpp"
+void status_handler(const lcm::ReceiveBuffer* rbuf, const std::string& channel, 
+                                   const dynamixel_status_list_t *scan, void *user) {
+    vector<double>& arm_pos = ((a2_inverse_kinematics*) user)->arm_pos;
+    mutex& lock = ((a2_inverse_kinematics*) user)->lock;
+    lock.lock();
+    for (int id = 0; id < scan->len; ++id) {
+        arm_pos[id] = scan->statuses[id].position_radians;
+    }
+    lock.unlock();
+}
 
-#include "common/getopt.h"
-#include "common/timestamp.h"
-//#include "math/math_util.h"
-#include "math/fasttrig.h"
-
-#define NUM_SERVOS 6
-
-using namespace std;
-
-typedef struct state state_t;
-struct state
-{
-    getopt_t *gopt;
-
-    // LCM
-    lcm::LCM *lcm;
-    const char *command_channel;
-    const char *status_channel;
-
-    pthread_t status_thread;
-    pthread_t command_thread;
-
-    double x;
-    double y;
-    double z;
-    double tilt;
-
-    double base_height;
-    double upper_arm;
-    double lower_arm;
-    double palm_length;
-    double finger_length;
-};
-
-class lcmHandler{
-    private: 
-        state_t *state;
-
-    public:
-        lcmHandler(state_t *s) : state(s) {}
-
-        void handleStatus(const lcm::ReceiveBuffer *rbuf,
-                          const std::string& channel,
-                          const dynamixel_status_list_t *msg)
-        {
-            assert(channel == "ARM_STATUS");
-            for (int id = 0; id < msg->len; id++) {
-                dynamixel_status_t stat = msg->statuses[id];
-              //  printf ("[id %d]=%6.3f ",id, stat.position_radians);
-            }
-            //printf ("\n");
-        }
-};
-
-void *
-status_loop (void *user)
-{
-    state_t *state = (state_t *)user;
-    cout << "status looping maybe" << endl;
-    while(state->lcm->handle() == 0);
+void* lcm_handler(void* args) {
+    lcm::LCM& lcm = ((a2_inverse_kinematics*) args)->lcm;
+    int hz = 15;
+    while(1){
+        lcm.handle();
+        usleep(1000000/hz);
+    }
     return NULL;
 }
 
-void *
-command_loop (void *user)
-{
-    state_t *state = (state_t *)user;
-    const double hz = 0.2;
+a2_inverse_kinematics::a2_inverse_kinematics() {
+    arm_pos.resize(NUM_SERVOS, 0);
+
+    // lcm.subscribeFunction(status_channel, (void (*)(lcm::ReceiveBuffer*, string&, dynamixel_status_list_t*, void*) )status_handler, (void*) NULL);
+    lcm.subscribeFunction(status_channel, status_handler, (void*) this);
+
+    pthread_create(&lcm_handler_thread, NULL, lcm_handler, (void*) this);
+
+}
+
+void a2_inverse_kinematics::move(double x, double y, double z, double tilt, double rotate, double grip) {
+    if (z >= 15) {
+        cout << "z can't go that high z = " << z << endl;
+        return;
+    }
+    if (x >= 20 || y >= 20) {
+        cout << "x or y can't go that far, x = " << x << ", y = " << y << endl;
+        return;
+    }
 
     dynamixel_command_list_t cmds;
     cmds.len = NUM_SERVOS;
     cmds.commands = vector<dynamixel_command_t>(NUM_SERVOS); 
-    fasttrig_init();
+    
+    double error = 0.15; // about 8.5 degree error
+    int count = 0;
+    double hz = 2;
+    int num_count = 20; // default wait at most 10 sec
 
-    double d1 = state->base_height;
-    double d2 = state->upper_arm;
-    double d3 = state->lower_arm;
-    double d4 = state->palm_length;
-    double h = state->finger_length+state->z;
-    double x = state->x;
-    double y = state->y;
-    double r = sqrt(x*x+y*y);
-    double m2 = x*x+y*y+(d4+h-d1)*(d4+h-d1); 
+    double theta[NUM_SERVOS];
 
-    cmds.commands[0].position_radians = atan2(y, x); 
-    cmds.commands[1].position_radians = M_PI/2.0 
-        - atan2(d4+h-d1,r) - facos((-d3*d3+d2*d2+m2)/(2*d2*sqrt(m2)));
-    cmds.commands[2].position_radians = M_PI
-        - facos((-m2+d2*d2+d3*d3)/(2*d2*d3));
-    cmds.commands[3].position_radians = M_PI 
-        - cmds.commands[1].position_radians 
-        - cmds.commands[2].position_radians
-        - state->tilt;
-    cmds.commands[4].position_radians = 0;
-    cmds.commands[5].position_radians = 0;
-
-    for (int id = 0; id < NUM_SERVOS; id++) {
-        cmds.commands[id].speed = 0.2;
-        cmds.commands[id].max_torque = 0.7;
-        cout << cmds.commands[id].position_radians << " ";
+    if (x == 0 && y == 0) {
+        theta[0] = 0;
+        theta[1] = 0;
+        theta[2] = 0;
+        theta[3] = tilt;
     }
-    cout << endl;
+    else {
+        fasttrig_init();
 
-    while (1) {
+        double h = d5 + z;
+        double R = sqrt(x*x+y*y);
+        double M2 = (x*x+y*y)+(d4+h-d1)*(d4+h-d1); 
 
-        cout << "lol" << endl; 
-        for (int id = 0; id < NUM_SERVOS; id++)
-            cmds.commands[id].utime = utime_now ();
+        theta[0] = atan2(y, x); 
 
-        state->lcm->publish(state->command_channel, &cmds);
-        usleep (1000000/hz);
+        theta[1] = M_PI/2.0 
+                - atan2(d4+h-d1,R) 
+                - facos((-d3*d3+d2*d2+M2)/(2*d2*sqrt(M2)));
+
+        theta[2] = M_PI
+                - facos((-M2+d2*d2+d3*d3)/(2*d2*d3));
+
+        theta[3] = M_PI 
+                - theta[1] 
+                - theta[2]
+                + tilt;
     }
 
-    return NULL;
+    theta[4] = rotate;
+    theta[5] = grip;
+
+    for (int id = 0; id < NUM_SERVOS; ++id) {
+        cmds.commands[id].utime = utime_now();
+        cmds.commands[id].position_radians = theta[id];
+        cmds.commands[id].speed = SPEED;
+        cmds.commands[id].max_torque = TORQUE;
+
+cout << "theta[" << id << "]=" << theta[id] << " | ";
+    }
+
+cout << endl;
+  
+    lcm.publish(command_channel, &cmds);
+
+    // wait at most 10 sec or until arm in position
+    lock.lock();
+    while (count < num_count && 
+                        (   fabs(arm_pos[0] - theta[0]) > error || 
+                            fabs(arm_pos[1] - theta[1]) > error ||  
+                            fabs(arm_pos[2] - theta[2]) > error || 
+                            fabs(arm_pos[3] - theta[3]) > error || 
+                            fabs(arm_pos[4] - theta[4]) > error ||
+                            fabs(arm_pos[5] - theta[5]) > error )) {
+        lock.unlock();
+        usleep(1000000/hz);
+        lock.lock();
+        count++;
+    }
+    lock.unlock();
+
 }
 
-int
-main (int argc, char *argv[])
-{
-    state_t *state = new state_t;
-    state->lcm = new lcm::LCM;
-    state->command_channel = "ARM_COMMAND";
-    state->status_channel = "ARM_STATUS";
-    state->base_height = 11.7; // unit = cm
-    state->upper_arm = 10;
-    state->lower_arm = 10;
-    state->palm_length = 10;
-    state->finger_length = 8.2;
+void a2_inverse_kinematics::move(double x, double y, double z, double grip) {
+    move(x, y, z, 0, -M_PI/2.0, grip);
+}
 
-    lcmHandler handler(state);
-    state->lcm->subscribe(state->status_channel,
-                          &lcmHandler::handleStatus,
-                          &handler);
-
-    cout << "x, y, z, tilt: ";
-    cin >> state->x >> state->y >> state->z >> state->tilt;
-
-    pthread_create (&state->status_thread, NULL, status_loop, state);
-    pthread_create (&state->command_thread, NULL, command_loop, state);
-
-    pthread_join (state->command_thread, NULL);
-    pthread_join (state->status_thread, NULL);
-
-    delete state->lcm;
-    free (state);
-
-    return 0;
+void a2_inverse_kinematics::move_origin(double grip) {
+    move(0, 0, 0, 0, -M_PI/2.0, grip);
 }
