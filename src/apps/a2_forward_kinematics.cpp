@@ -12,6 +12,7 @@
 #include <string>
 #include <lcm/lcm-cpp.hpp>
 #include <vector>
+#include <gsl/gsl_blas.h>
 
 #include "lcmtypes/dynamixel_command_list_t.hpp"
 #include "lcmtypes/dynamixel_command_t.hpp"
@@ -82,7 +83,11 @@ void radiansToXYZ(double pos[], state_t *state) {
                      0., 0., 0., 0.,
                      0., 0., 0., 0.,
                      0., 0., 0., 0.};
-
+    double tem2[] = {0., 0., 0., 0.,
+                     0., 0., 0., 0.,
+                     0., 0., 0., 0.,
+                     0., 0., 0., 0.};
+ 
     gsl_matrix_view Afw = gsl_matrix_view_array(a_f2w, 4, 4);
     gsl_matrix_view Awe = gsl_matrix_view_array(a_w2e, 4, 4);
     gsl_matrix_view Aes = gsl_matrix_view_array(a_e2s, 4, 4);
@@ -90,11 +95,22 @@ void radiansToXYZ(double pos[], state_t *state) {
     gsl_matrix_view Pf  = gsl_matrix_view_array(pt_f,  4, 1);
     gsl_matrix_view Pb  = gsl_matrix_view_array(pt_b,  4, 1);
     gsl_matrix_view tmp = gsl_matrix_view_array(temp,  4, 4);
+    gsl_matrix_view tm2 = gsl_matrix_view_array(tem2,  4, 4);
 
-    //gsl_blas_dgemm()
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Asb.matrix, 
+                   &Aes.matrix, 0.0, &tmp.matrix);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &tmp.matrix, 
+                   &Awe.matrix, 0.0, &tm2.matrix);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &tm2.matrix, 
+                   &Afw.matrix, 0.0, &tmp.matrix);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &tmp.matrix, 
+                   &Pf.matrix, 0.0, &Pb.matrix);
 
+    state->x = pt_b[0];
+    state->y = pt_b[1];
+    state->z = pt_b[2];
 
-    cout << "x y z here" << endl;
+    cout << pt_b[0] << " " << pt_b[1] << " " << pt_b[2] << " " << pt_b[3] << endl;
 }
 
 class lcmHandler{
