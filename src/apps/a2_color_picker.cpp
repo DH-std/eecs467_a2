@@ -40,6 +40,8 @@ const uint8_t PURPLE_B = 153;
 const uint32_t PURPLE_RGB = (0xff) << 24 | (PURPLE_B & 0xff) << 16 | (PURPLE_G & 0xff) << 8 | PURPLE_R;
 const double scale_width = 100;
 
+string file_name = "HSV.txt";
+string imfile_name = "screenshot.pmm";
 
 struct HSV_extreme {
     float min_H, max_H, min_S, max_S, min_V, max_V;
@@ -96,7 +98,7 @@ typedef struct {
 static state_t * global_state;
 
 
-
+// http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
 static void RGB2HSV(uint8_t r, uint8_t g, uint8_t b,
                     float &h, float &s, float &v) {
     float R = r/255.;
@@ -319,14 +321,14 @@ static int key_event (vx_event_handler_t * vh, vx_layer_t * vl, vx_key_event_t *
             if (!state->past_HSV.empty()){
                 HSV_extreme& cur_HSV_extremes = state->cur_HSV;
 
-                ofstream HSV_file("HSV.txt");
+                ofstream HSV_file(file_name);
 
                 HSV_file << cur_HSV_extremes.min_H << " " << cur_HSV_extremes.max_H << " "
                         << cur_HSV_extremes.min_S << " " << cur_HSV_extremes.max_S << " "
                         << cur_HSV_extremes.min_V << " " << cur_HSV_extremes.max_V << " " << endl;;
 
                 HSV_file.close();
-                cout << "file saved to HSV.txt" << endl;
+                cout << "file saved to " + file_name << endl;
             }
             else {
                 cout << "Nothing to save" << endl;
@@ -350,6 +352,15 @@ static int key_event (vx_event_handler_t * vh, vx_layer_t * vl, vx_key_event_t *
             }
             else {
                 cout << "Nothing to delete" << endl;
+            }
+
+        }
+        else if (key->key_code == 'p' || key->key_code == 'P') {
+            if (!image_u32_write_pnm (state->im, imfile_name.c_str())) {
+                cout << "image saved to " + imfile_name << endl;
+            }
+            else {
+                cout << "error saving image to " + imfile_name << endl;
             }
 
         } 
@@ -466,6 +477,8 @@ static void init_state(int argc, char ** argv) {
     getopt_add_bool(state->gopt, 'h', "help", 0, "Show this help");
     getopt_add_bool(state->gopt, 'v', "verbose", 0, "Show extra debugging output");
     getopt_add_string(state->gopt, 'f', "file", "NULL", "Input file to pick color");
+    getopt_add_string(state->gopt, 'o', "outfile", "NULL", "Output HSV filename");
+    getopt_add_string(state->gopt, 'i', "outimage", "NULL", "Output image filename");
     getopt_add_string(state->gopt, 'm', "mask", "NULL", "Mask file");
     getopt_add_bool (state->gopt, '\0', "stay-open", 0, "Stay open after gtk exits to continue handling remote connections");
 
@@ -479,6 +492,15 @@ static void init_state(int argc, char ** argv) {
         cout << "Please input the mask file with -m" << endl;
         exit(-1);
     }
+    
+    if (!strcmp(getopt_get_string(state->gopt, "outfile"), "NULL")) {
+        file_name = getopt_get_string(state->gopt, "outfile");
+    }
+
+    if (!strcmp(getopt_get_string(state->gopt, "outimage"), "NULL")) {
+        imfile_name = getopt_get_string(state->gopt, "outimage");
+    }
+
 
     verbose = getopt_get_bool(state->gopt, "verbose");
 }
