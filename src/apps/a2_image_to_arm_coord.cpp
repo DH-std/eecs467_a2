@@ -1,6 +1,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
+#include "a2_blob_detector.hpp"
+#include "a2_blob_detector.cpp"
 #include <imagesource/image_u32.h>
 #include "lcmtypes/dynamixel_status_list_t.h"
 #include "lcmtypes/dynamixel_status_t.h"
@@ -85,7 +87,7 @@ void image_to_arm::save_first_square(){
 	std::cin >> x; 
 	//type 1 to 
 	if(x==1){
-		//inverse kinematic current servo 
+		//forward kinematic current servo 
 		// //save left corner value
 		// r1x = ;
 		// r1y = ;
@@ -97,7 +99,7 @@ void image_to_arm::save_last_square(){
 	//bottom right corner
 	std::cin >> x;
 	if(x==1){
-		//inverse kinematic 
+		//forward kinematic 
 		//save left corner value
 		// r2x = ;
 		// r2y = ;
@@ -112,6 +114,20 @@ image_to_arm::image_to_arm(){
 
 }
 
+void image_to_arm::camera_points(int n){
+	//n is the number of the top left corner square
+	detect->process();
+	detect->regList[n].centerX = c1x;
+	detect->regList[n].centerY = c1y;
+
+	n+=3;
+	if(n > 3){
+		n-=4;
+	} 
+
+	detect->regList[n].centerX = c2x;
+	detect->regList[n].centerY = c2y;
+}
 
 image_to_arm::image_to_arm(string path, int Hmin, int Hmax, int Smin, int Smax, int Vmin , int Vmax){
 
@@ -123,7 +139,23 @@ image_to_arm::image_to_arm(string path, int Hmin, int Hmax, int Smin, int Smax, 
 	Smin = S1;
 	Smax = S2;
 
+	blob_detector temp(path_name, H1,H2,S1,S2,V1,V2);
+	detect = &temp;
+}
 
+image_to_arm::image_to_arm(image_u32_t *im, int Hmin, int Hmax, int Smin, int Smax, int Vmin , int Vmax){
+
+
+	Hmin = H1;
+	Hmax = H2;
+	Vmin = V1;
+	Vmax = V2;
+	Smin = S1;
+	Smax = S2;
+
+	image = im;
+	blob_detector temp(image, H1,H2,S1,S2,V1,V2);
+	detect = &temp;
 }
 
 int main(){

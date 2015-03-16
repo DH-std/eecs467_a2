@@ -96,6 +96,7 @@ public:
 	
 	blob_detector();
 	blob_detector(string path_name, int H1, int H2, int S1, int S2, int V1, int V2);
+	blob_detector(image_u32_t *im, int H1, int H2, int S1, int S2, int V1, int V2);
 
 	void bucketfill(int curX, int curY, image_u32_t * im, deque<int> *nextcoord, region * reg);
 	bool checkpoint(int t, image_u32_t * im);

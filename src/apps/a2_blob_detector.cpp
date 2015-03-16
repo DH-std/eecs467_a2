@@ -240,6 +240,31 @@ blob_detector::blob_detector(string path_name, int H1, int H2, int S1, int S2, i
 	}
 }
 
+blob_detector::blob_detector(image_u32_t *im, int H1, int H2, int S1, int S2, int V1, int V2){
+
+	Hmin = H1;
+	Hmax = H2;
+	Smin = S1;
+	Smax = S2;
+	Vmin = V1;
+	Vmax = V2;
+
+	regNum = 1;
+
+	image = im;
+
+	width = image->width;
+	height = image->height;
+	stride = image->stride;
+
+	printf("width:%d\n", width);
+	printf("height:%d\n", height);
+	printf("stride:%d\n", stride);
+
+	vis.assign(width*height, 0);
+	
+}
+
 void blob_detector::process(){
 	
 	//looping to find start positions
@@ -278,18 +303,18 @@ void blob_detector::process(){
 	}
 
 }
-int main(){
+// int main(){
 
 
-	string p = "/home/loren/Documents/Mich/eecs467a2/src/pics/corner_image_0.ppm";
+// 	string p = "/home/loren/Documents/Mich/eecs467a2/src/pics/corner_image_0.ppm";
 
-	blob_detector b1( p , 0,5,0,5,0,5);
-	b1.process();
-	printf("regNum:%d\n", b1.regNum);
-	//printf("HSV match: %d\n", b1.checkpoint(38*b1.width + 463, b1.image));
-	printf("centX: %d, centY: %d\n",b1.regList[0].centerX, b1.regList[0].centerY);
-	printf("centX: %d, centY: %d\n",b1.regList[1].centerX, b1.regList[1].centerY);
-	printf("centX: %d, centY: %d\n",b1.regList[2].centerX, b1.regList[2].centerY);
-	return 0;
+// 	blob_detector b1( p , 0,5,0,5,0,5);
+// 	b1.process();
+// 	printf("regNum:%d\n", b1.regNum);
+// 	//printf("HSV match: %d\n", b1.checkpoint(38*b1.width + 463, b1.image));
+// 	printf("centX: %d, centY: %d\n",b1.regList[0].centerX, b1.regList[0].centerY);
+// 	printf("centX: %d, centY: %d\n",b1.regList[1].centerX, b1.regList[1].centerY);
+// 	printf("centX: %d, centY: %d\n",b1.regList[2].centerX, b1.regList[2].centerY);
+// 	return 0;
 
-}
+// }
