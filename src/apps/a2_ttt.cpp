@@ -13,6 +13,7 @@
 #include "a2_ai.h"
 #include "a2_inverse_kinematics.h"
 #include "a2_pick_place.h"
+#include "a2_board_state.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,9 +110,9 @@ public:
     image_to_arm im2arm;
 
     Board board;
-    a2_pick_place pickplace;
+    a2_pick_place pick_place;
     a2_ai ai;
-    a2_inverse_kinematics inverse;
+    a2_board_state board_state;
 
     ifstream myfile;
 
@@ -231,9 +232,6 @@ public:
 	    }
 	    im2arm.calibrate();
 
-	    //initialize ai
-
-
 
 	    //subscribe to lcm message
 	    lcm.subscribe("ARM_STATUS", &state_t::handleStatus, this);
@@ -282,32 +280,22 @@ public:
 
 			//check board state
 				//blob detector for our balls
-				myfile.open ("HSV_our.txt");
-		 		myfile >> Hmin >> Hmax >> Smin >> Smax >> Vmin >> Vmax;
-		 		myfile.close();
-
-		 		im1 = get_camera_frame();
-
-		 		detector1 = blob_detector(im1, Hmin, Hmax, Smin, Smax, Vmin, Vmax);
-		 		detector1.process();
-
-				//blob detector for opponents
-				myfile.open ("HSV_their.txt");
-		 		myfile >> Hmin >> Hmax >> Smin >> Smax >> Vmin >> Vmax;
-		 		myfile.close();
-		 		detector2 = blob_detector(im1, Hmin, Hmax, Smin, Smax, Vmin, Vmax);
-		 		detector2.process();
 
 		 		//update board
+		 		board_state.detect();
 
 			//call ai (determine next move)
-				a2_ai();
+		 		ai.set_board(board_state.board);
+				int board_x, board_y;
+				ai.next_move(board_x, board_y);
 
+				// calculate arm coordinate to pick, place
 			//pick up ball
+				pick_place.pick( arm x, arm y);
 
 
 			//place ball
-
+				pick_place.place( arm x, arn y);
 
 			//done with turn, update turn num
 				turn_num++;
@@ -334,18 +322,19 @@ static void* lcm_loop(void *input)
 void * broadcast_loop(void *user){
 	state_t *state = (state_t *)user;
 	ttt_turn_t turn_msg;
-	state->tim += 50000;
-	turn_msg.utime = state->tim;
-	turn_msg.turn = state->turn_num;
-	if(state->red == true){
-		state->lcm.publish("RED_TURN", &turn_msg);
-	}
-	else{
-		state->lcm.publish("GREEN_TURN", &turn_msg);
-	}
+	while(1){
+		state->tim += 50000;
+		turn_msg.utime = state->tim;
+		turn_msg.turn = state->turn_num;
+		if(state->red == true){
+			state->lcm.publish("RED_TURN", &turn_msg);
+		}
+		else{
+			state->lcm.publish("GREEN_TURN", &turn_msg);
+		}
 
-	usleep(50000); //20Hz
-
+		usleep(50000); //20Hz
+	}
 	return NULL;
 }
 
