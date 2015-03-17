@@ -133,7 +133,7 @@ command_loop (void *user)
 
     return NULL;
 }
-
+/*
 int
 main (int argc, char *argv[])
 {
@@ -165,4 +165,4 @@ main (int argc, char *argv[])
     free (state);
 
     return 0;
-}
+}*/
