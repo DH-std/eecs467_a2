@@ -23,11 +23,11 @@ public:
 	image_to_arm();
 	image_to_arm(string path, int Hmin, int Hmax, int Smin, int Smax, int Vmin , int Vmax);
 	image_to_arm(image_u32_t *im, int Hmin, int Hmax, int Smin, int Smax, int Vmin , int Vmax);
-	void save_first_square(); //save r1x, r1y values, awaits human input
-	void save_last_square();  //save r2x, r2y values, awaits human input
+	void save_first_square(int x, int y); //save r1x, r1y values, awaits human input
+	void save_last_square(int x, int y);  //save r2x, r2y values, awaits human input
 	void camera_points(int n);
 
-	void calibrate(int r1x, int r1y, int r2x, int r2y, int c1x, int c1y, int c2x , int c2y); //calibrate values for theta, s, tx and ty
+	void calibrate(); //calibrate values for theta, s, tx and ty
 	void translate(double x, double y, double *outx, double *outy); //give a set of camera values, translates to arm values
 
 	void print();

@@ -16,7 +16,7 @@
 using namespace std;
 
 //convert camera frame to arm frame
-void image_to_arm::calibrate( int r1x, int r1y, int r2x, int r2y, int c1x, int c1y, int c2x , int c2y){
+void image_to_arm::calibrate(){
 	double robot_center_x;
 	double robot_center_y;
 	double camera_center_x;
@@ -81,29 +81,14 @@ void image_to_arm::translate(double x, double y, double *outx, double *outy){
 }
 
 
-void image_to_arm::save_first_square(){
-	int x;
-	//top left corner (from camera's point of view)
-	std::cin >> x; 
-	//type 1 to 
-	if(x==1){
-		//forward kinematic current servo 
-		// //save left corner value
-		// r1x = ;
-		// r1y = ;
-	}
+void image_to_arm::save_first_square(int x, int y){
+	r1x = x;
+	r1y = y;
 }
 
-void image_to_arm::save_last_square(){
-	int x;
-	//bottom right corner
-	std::cin >> x;
-	if(x==1){
-		//forward kinematic 
-		//save left corner value
-		// r2x = ;
-		// r2y = ;
-	}
+void image_to_arm::save_last_square(int x, int y){
+	r2x = x;
+	r2y = y;
 }
 
 void image_to_arm::print(){

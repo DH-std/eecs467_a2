@@ -30,59 +30,6 @@ class region{
 };
 
 
-region::region(){
-	num = 0;
-	centerX = 0;
-	centerY = 0;
-	area = 0;
-	maxX = 0;
-	maxY = 0;
-	minX = 0;
-	minY = 0;
-
-}
-
-region::region(int x, int y, int regNum){
-	num = regNum;
-	centerX = x;
-	centerY = y;
-	area = 1;
-	maxX = x;
-	maxY = y;
-	minX = x;
-	minY = y;
-
-}
-
-void region::compY(int y){
-	if(y > maxY){
-		maxY = y;
-	}
-	else if(y < minY){
-		minY = y;
-	}
-
-}
-
-void region::compX(int x){
-	if(x > maxX){
-		maxX = x;
-	}
-	else if(x < minX){
-		minX = x;
-	}
-
-}
-
-void region::setCenter(){
-	int Xdiff = maxX + minX;
-	int Ydiff = maxY + minY;
-
-	centerX = Xdiff/2;
-	centerY = Ydiff/2;
-
-}
-
 class blob_detector{
 public:
 
