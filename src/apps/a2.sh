@@ -5,26 +5,32 @@ bin_path='../../bin'
 #$(rm mask_board)
 #$(rm mask_pick)
 
-echo -e "\e[1;31mdefine the mask for the board \e[0m"
-./$bin_path/a2_mask mask_board
-echo -e "\e[1;31mdefine the mask for free ball pool \e[0m"
-./$bin_path/a2_mask mask_pick
+echo -e "\e[1;31mneed to set configuration? (n/y): \e[0m"
+read a
 
-echo -e "\e[1;31mdefine red range \e[0m"
-./$bin_path/a2_color_picker -o hsv_R
-echo -e "\e[1;31mdefine green range \e[0m"
-./$bin_path/a2_color_picker -o hsv_G
-echo -e "\e[1;31mdefine cyan range \e[0m"
-./$bin_path/a2_color_picker -o hsv_B
+if [ "$a" == "y" ]
+then
+    echo -e "\e[1;31mdefine the mask for the board \e[0m"
+    ./$bin_path/a2_mask mask_board
+    echo -e "\e[1;31mdefine the mask for free ball pool \e[0m"
+    ./$bin_path/a2_mask mask_pick
 
-# cali arm
-
-./$bin_path/a2_board_state
+    echo -e "\e[1;31mdefine red range \e[0m"
+    ./$bin_path/a2_color_picker -o hsv_R
+    echo -e "\e[1;31mdefine green range \e[0m"
+    ./$bin_path/a2_color_picker -o hsv_G
+    echo -e "\e[1;31mdefine cyan range \e[0m"
+    ./$bin_path/a2_color_picker -o hsv_B
+    echo -e "\e[1;31mcalibrate arm \e[0m"
+    ./$bin_path/a2_cali
+fi
 
 a="d"
 while [ "$a" != "q" ]
 do
-    echo "more fun~" # play game
+    echo -e "\e[1;31mwho are you (r/g): \e[0m" # play game
+    read player
+    ./$bin_path/a2_ttt $player
     echo -e "\e[1;31mtype q to quit \e[0m"
     read a
 done

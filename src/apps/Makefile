@@ -44,12 +44,13 @@ BIN_EECS467_A2_INVERSE_KINEMATICS = $(BIN_PATH)/a2_inverse_kinematics
 BIN_EECS467_A2_BOARD_STATE = $(BIN_PATH)/a2_board_state
 BIN_EECS467_A2_MASK = $(BIN_PATH)/a2_mask
 BIN_EECS467_A2_TTT = $(BIN_PATH)/a2_ttt
+BIN_EECS467_A2_CALI = $(BIN_PATH)/a2_cali
 
 ALL = $(LIB_EECS467) $(BIN_EECS467_GUI_EXAMPLE) $(BIN_EECS467_REXARM_EXAMPLE) \
       $(BIN_EECS467_MAEBOT_EXAMPLE) $(BIN_EECS467_MAEBOT_VIDEO_TELOP) \
       $(BIN_EECS467_A2_COLOR_PICKER) $(BIN_EECS467_A2_AI) $(BIN_EECS467_A2_PICK_PLACE) \
       $(BIN_EECS467_A2_INVERSE_KINEMATICS) $(BIN_EECS467_A2_BOARD_STATE) $(BIN_EECS467_A2_MASK) \
-      $(BIN_EECS467_A2_IMAGE_TO_ARM) $(BIN_EECS467_A2_TTT)
+      $(BIN_EECS467_A2_IMAGE_TO_ARM) $(BIN_EECS467_A2_TTT) $(BIN_EECS467_A2_CALI)
 
 all: $(ALL)
 
@@ -102,6 +103,10 @@ $(BIN_EECS467_A2_IMAGE_TO_ARM): a2_image_to_arm.o a2_blob_detector.o $(LIB_EECS4
 	@$(CXX) -o $@ $^ $(LDFLAGS) $(CXXFLAGS)
 
 $(BIN_EECS467_A2_TTT): a2_ttt.o a2_board_state.o a2_blob_detector.o board.o a2_pick_place.o a2_inverse_kinematics.o a2_image_to_arm_coord.o a2_ai.o $(LIB_EECS467) $(LIBDEPS)
+	@echo "\t$@"
+	@$(CXX) -o $@ $^ $(LDFLAGS) $(CXXFLAGS)
+
+$(BIN_EECS467_A2_CALI): a2_cali.o a2_board_state.o a2_blob_detector.o board.o a2_pick_place.o a2_inverse_kinematics.o a2_image_to_arm_coord.o a2_ai.o $(LIB_EECS467) $(LIBDEPS)
 	@echo "\t$@"
 	@$(CXX) -o $@ $^ $(LDFLAGS) $(CXXFLAGS)
 

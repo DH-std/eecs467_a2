@@ -289,12 +289,44 @@ else {
         //calibrate arm/camera values   
         
         im2arm = image_to_arm(im,Hmin,Hmax,Smin,Smax,Vmin,Vmax);
+            
+	//read in camera points
+        int n;
+
+        cout << "input which corner: ";
+        cin >> n;
+        im2arm.camera_points(n);
+
+        //move arm to first square
+        cout << "move arm to first square and press any key ";
+        cin >> n;
+
+            cout << endl;
         
-	myfile.open ("cal");
-        myfile >> im2arm.trans[0] >> im2arm.trans[1] >> im2arm.trans[2] >> im2arm.trans[3] >> im2arm.trans[4] >> im2arm.trans[5];
-        myfile.close();
-        
-	if (red) {
+            radiansToXYZ(servo_pos, this);
+            im2arm.save_first_square(x,y);
+
+        //move arm to second square
+        cout << "move arm to second square and press any key ";
+        cin >> n;
+
+            radiansToXYZ(servo_pos, this); 
+            im2arm.save_second_square(x,y);
+     
+        cout << "move arm to third square and press any key ";
+        cin >> n;
+
+            radiansToXYZ(servo_pos, this); 
+            im2arm.save_last_square(x,y);
+
+        cout << "press anykey to continue ";
+        cin >> n; 
+
+        im2arm.calibrate();
+cout << "arm calibrated" << endl;
+        exit(0);
+
+        if (red) {
             board_state.init("mask_board", "mask_pick", "hsv_R", "hsv_G", "hsv_B", 'R', url, isrc);
         }
         else {
@@ -411,7 +443,7 @@ cout << "ball placed" << endl;
                       const ttt_turn_t *msg)
         {
             //check if our turn
-            cout << " tttHandler msg->turn " << msg->turn << " my_turn_num " << my_turn_num << endl;
+            // cout << " tttHandler msg->turn " << msg->turn << " my_turn_num " << my_turn_num << endl;
             if (init_done && (((red == true) && (msg->turn == my_turn_num)) or ((red == false) && (msg->turn != my_turn_num))) ){
                 other_turn_num = msg->turn;
                 run_ttt();
