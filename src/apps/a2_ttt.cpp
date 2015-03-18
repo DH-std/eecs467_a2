@@ -43,7 +43,7 @@ public:
 
     long int tim;
     bool red;
-    int turn_num;
+    int my_turn_num, other_turn_num;
 
     blob_detector detector1;
     blob_detector detector2;
@@ -185,7 +185,8 @@ public:
         lower_arm = 10;
         palm_length = 10;
         finger_length = 8.2;
-        turn_num = 0;
+        my_turn_num = 0;
+        other_turn_num = 0;
         tim = 0;
 
         camera_inited = false;
@@ -410,7 +411,7 @@ cout << "going to place ball at " << arm_x << "," << arm_y << endl;
 cout << "ball placed" << endl;
 
         //done with turn, update turn num
-            turn_num++;
+            my_turn_num++;
         } //if (board_x != -1 && board_y != -1)
         else {
             cout << "game ended!" << endl;
@@ -425,8 +426,8 @@ cout << "ball placed" << endl;
                       const ttt_turn_t *msg)
         {
             //check if our turn
-            if(((red == true) && (msg->turn%2 == 0)) or ((red == false) && (msg->turn%2 == 1)) ){
-                turn_num = msg->turn;
+            if(((red == true) && (msg->turn == my_turn_num)) or ((red == false) && (msg->turn != my_turn_num)) ){
+                other_turn_num = msg->turn;
                 run_ttt();
             }
             //if not our turn do nothing
@@ -452,7 +453,7 @@ void * broadcast_loop(void *user){
     while(1){
         state->tim += 50000;
         turn_msg.utime = state->tim;
-        turn_msg.turn = state->turn_num;
+        turn_msg.turn = state->my_turn_num;
         if(state->red == true){
             state->lcm.publish("RED_TURN", &turn_msg);
         }
@@ -486,11 +487,12 @@ int main(int argc, char *argv[]){
         state.init();
 
     cout << "state inited" << endl;
-    char t;
+    // char t;
     while(1) {
-        cout << "press any key to run" << endl;
-        cin >> t;
-        state.run_ttt();
+        // cout << "press any key to run" << endl;
+        // cin >> t;
+        // state.run_ttt();
+        usleep(1000000);
     }
 
 }
