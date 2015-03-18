@@ -67,10 +67,13 @@ public:
     double finger_length;
 
     bool camera_inited;
+    bool init_done;
     char *url;
     image_source_t *isrc;
 
     a2_inverse_kinematics ik;
+
+    int board_left, board_right, board_top, board_bot;
 
     bool init_camera() {
         if (!camera_inited) {
@@ -190,8 +193,10 @@ public:
         tim = 0;
 
         camera_inited = false;
+        init_done = false;
 
-
+    }
+    void init() {
         //subscribe to lcm message
         lcm.subscribe("ARM_STATUS", &state_t::handleStatus, this);
 
@@ -205,10 +210,6 @@ public:
         }
 cout << "lcm subed" << endl;
 
-
-  
-    }
-    void init(){
         // ik = a2_inverse_kinematics();
         ik.limp();
               //read in values needed to calibrate
@@ -221,6 +222,11 @@ cout << "lcm subed" << endl;
 cout << "got inital params" << endl;
 cout << Hmin << "," << Hmax << "," << Smin << endl;
 
+        ifstream mask_b("mask_board");
+        mask_b >> board_left >> board_right >> board_top >> board_bot;
+    // cout << "mask: " << mask_left << "," << mask_right << "," << mask_top << "," << mask_bot << endl;
+        mask_b.close();
+
         init_camera();
 cout << "camera inited" << endl;
 
@@ -231,6 +237,13 @@ cout << "camera inited" << endl;
         int res = isrc->get_frame(isrc, &isdata);
         if (!res) {
             im = image_convert_u32(&isdata);
+            for (int y = 0; y < im->height; ++y) {
+                for (int x = 0; x < im->width; ++x) {
+                    if (y < board_top || y > board_bot || x < board_left || x > board_right) {
+                        im->buf[y*im->stride+x] = 0xff000000;
+                    }
+                }
+            }
 cout << "got camera image" << endl;
         }
         else {
@@ -249,6 +262,12 @@ detect.process();
 
 string board_file = "im2arm";
 
+
+for (unsigned int i = 0; i < detect.regList.size(); ++i) {
+    cout << detect.regList[i].centerX <<","<< detect.regList[i].centerY << endl;
+}
+
+cout << "blob detector in state ctor" << endl;
 for (int x = -1; x <= 1; ++x) {
     for (int y = -1; y <= 1; ++y) {
         im->buf[(detect.regList[0].centerY+y)*im->stride+(detect.regList[0].centerX+x)] = 0xff000000;
@@ -271,44 +290,44 @@ else {
         
         im2arm = image_to_arm(im,Hmin,Hmax,Smin,Smax,Vmin,Vmax);
         if(1){
-        myfile.open ("cal");
-        myfile >> im2arm.trans[0] >> im2arm.trans[1] >> im2arm.trans[2] >> im2arm.trans[3] >> im2arm.trans[4] >> im2arm.trans[5];
-        myfile.close();
+            myfile.open ("cal");
+            myfile >> im2arm.trans[0] >> im2arm.trans[1] >> im2arm.trans[2] >> im2arm.trans[3] >> im2arm.trans[4] >> im2arm.trans[5];
+            myfile.close();
         }
         else{
-        //read in camera points
-        int n;
+            //read in camera points
+            int n;
 
-        cout << "input which corner: ";
-        cin >> n;
-        im2arm.camera_points(n);
+            cout << "input which corner: ";
+            cin >> n;
+            im2arm.camera_points(n);
 
-        //move arm to first square
-        cout << "move arm to first square and press any key ";
-        cin >> n;
+            //move arm to first square
+            cout << "move arm to first square and press any key ";
+            cin >> n;
 
-            cout << endl;
-      
-            radiansToXYZ(servo_pos, this);
-            im2arm.save_first_square(x,y);
+                cout << endl;
+          
+                radiansToXYZ(servo_pos, this);
+                im2arm.save_first_square(x,y);
 
-        //move arm to second square
-        cout << "move arm to second square and press any key ";
-        cin >> n;
+            //move arm to second square
+            cout << "move arm to second square and press any key ";
+            cin >> n;
 
-            radiansToXYZ(servo_pos, this); 
-            im2arm.save_second_square(x,y);
- 
-        cout << "move arm to third square and press any key ";
-        cin >> n;
+                radiansToXYZ(servo_pos, this); 
+                im2arm.save_second_square(x,y);
+     
+            cout << "move arm to third square and press any key ";
+            cin >> n;
 
-            radiansToXYZ(servo_pos, this); 
-            im2arm.save_last_square(x,y);
+                radiansToXYZ(servo_pos, this); 
+                im2arm.save_last_square(x,y);
 
-        cout << "press anykey to continue ";
-        cin >> n; 
+            cout << "press anykey to continue ";
+            cin >> n; 
 
-        im2arm.calibrate();
+            im2arm.calibrate();
 cout << "arm calibrated" << endl;
         }
         if (red) {
@@ -322,6 +341,8 @@ cout << "arm calibrated" << endl;
 cout << "board_state inited" << endl;
 
         pick_place.move_origin();
+
+        init_done = true;
 }
 
     ~state_t(){
@@ -426,7 +447,8 @@ cout << "ball placed" << endl;
                       const ttt_turn_t *msg)
         {
             //check if our turn
-            if(((red == true) && (msg->turn == my_turn_num)) or ((red == false) && (msg->turn != my_turn_num)) ){
+            cout << " tttHandler msg->turn " << msg->turn << " my_turn_num " << my_turn_num << endl;
+            if (init_done && (((red == true) && (msg->turn == my_turn_num)) or ((red == false) && (msg->turn != my_turn_num))) ){
                 other_turn_num = msg->turn;
                 run_ttt();
             }
