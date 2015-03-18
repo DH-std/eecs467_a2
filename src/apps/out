@@ -1,0 +1,29 @@
+R . G 
+G . R 
+. R . 
+
+################loop# 0 turn R
+################returned move 1,1 turn R
+R . G 
+G R R 
+. R . 
+
+################loop# 1 turn G
+################returned move 1,0 turn G
+R G G 
+G R R 
+. R . 
+
+################loop# 2 turn R
+################returned move 2,2 turn R
+R G G 
+G R R 
+. R R 
+
+################loop# 3 turn G
+look ahead on a finished board
+################returned move -1,-1 turn G
+update cell invalid row, col, or input: -1,-1,G
+R G G 
+G R R 
+. R R 
