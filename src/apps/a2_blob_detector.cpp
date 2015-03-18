@@ -18,7 +18,7 @@
 #include <pthread.h>
 using namespace std;
 
-#define minArea 1000 //min area to be considered a region
+#define minArea 150 //min area to be considered a region
 
 
 void blob_detector::HSV(uint32_t val, double * H, double * S, double *V){
@@ -128,11 +128,20 @@ bool blob_detector::checkpoint(int t, image_u32_t * im){
     double Hval = H;
     double Sval = S;
     double Vval = V;
+/*
+    if (curX == 610 && curY == 290) {
+        cout << "Y:" << curY << ",X:" << curX << ",H:" << Hval << ",S:" << Sval << ",V:" << Vval << endl;
+        cout << "Hmin:" << Hmin << ",Hmax:" << Hmax << ",Smin:" << Smin << ",Smax:" << Smax << ",Vmin:" << Vmin << ",Vmax:" << Vmax << endl;
 
-    // if (curX == 1083 && curY == 729) {
-    //     cout << "Y:" << curY << ",X:" << curX << ",H:" << Hval << ",S:" << Sval << ",V:" << Vval << endl;
-    //     cout << "Hmin:" << Hmin << ",Hmax:" << Hmax << ",Smin:" << Smin << ",Smax:" << Smax << ",Vmin:" << Vmin << ",Vmax:" << Vmax << endl;
-    // }
+        if((Hval <= Hmax) && (Hval >= Hmin) ){
+            if((Sval <= Smax) && (Sval >= Smin)){
+                if((Vval <= Vmax) && (Vval >= Vmin)){
+                    cout << "PASSED!!!!" << endl;
+                }
+            }
+        }
+    }
+    */
     // printf("curY:%d\n", curY);
     // printf("curX:%d\n", curX);
     // printf("Hval:%d\n", Hval);

@@ -31,7 +31,7 @@ a2_inverse_kinematics::a2_inverse_kinematics() {
 
 }
 
-void a2_inverse_kinematics::move(double x, double y, double z, double tilt, double rotate, double grip) {
+void a2_inverse_kinematics::move(double x, double y, double z, double tilt, double rotate, double grip, bool compensate) {
     if (z >= 15) {
         cout << "z can't go that high z = " << z << endl;
         return;
@@ -62,11 +62,20 @@ void a2_inverse_kinematics::move(double x, double y, double z, double tilt, doub
         fasttrig_init();
 
         double h = d5 + z;
-        double R = sqrt(x*x+y*y)-1;
+        double R = sqrt(x*x+y*y);
         double M2 = (x*x+y*y)+(d4+h-d1)*(d4+h-d1); 
 
-        theta[0] = atan2(y, x); 
+        theta[0] = atan2(y, x);
 
+        if (compensate) {
+            if (theta[0] >= 0) {
+                theta[0] += 0.1; 
+            }
+            else {
+                theta[0] -=-0.1; 
+            }
+        }
+        
         theta[1] = M_PI/2.0 
                 - atan2(d4+h-d1,R) 
                 - facos((-d3*d3+d2*d2+M2)/(2*d2*sqrt(M2)));
@@ -83,17 +92,19 @@ void a2_inverse_kinematics::move(double x, double y, double z, double tilt, doub
     theta[4] = rotate;
     theta[5] = grip;
 
-cout << "target ";
+
+// cout << "target ";
     for (int id = 0; id < NUM_SERVOS; ++id) {
         cmds.commands[id].utime = utime_now();
         cmds.commands[id].position_radians = theta[id];
         cmds.commands[id].speed = SPEED;
         cmds.commands[id].max_torque = TORQUE;
 
-cout << "theta[" << id << "]=" << theta[id] << " | ";
+// cout << "theta[" << id << "]=" << theta[id] << " | ";
     }
 
-cout << endl;
+// cout << endl;
+
   
     lcm.publish(command_channel, &cmds);
 
@@ -110,22 +121,26 @@ cout << endl;
         usleep(1000000/hz);
         lock.lock();
         count++;
+
+        /*
         cout << "reached ";
         for (int id = 0; id < NUM_SERVOS; ++id) {
-    cout << "arm[" << id << "]=" << arm_pos[id] << " | ";
+            cout << "arm[" << id << "]=" << arm_pos[id] << " | ";
         }
         cout << endl;
+        */
+
     }
     lock.unlock();
 
 }
 
 void a2_inverse_kinematics::move(double x, double y, double z, double grip) {
-    move(x, y, z, 0, -M_PI/2.0, grip);
+    move(x, y, z, 0, -M_PI/2.0, grip, false);
 }
 
 void a2_inverse_kinematics::move_origin(double grip) {
-    move(0, 0, 0, 0, -M_PI/2.0, grip);
+    move(0, 0, 0, 0, -M_PI/2.0, grip, false);
 }
 
 void a2_inverse_kinematics::limp() {

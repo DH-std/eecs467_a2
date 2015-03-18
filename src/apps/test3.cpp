@@ -11,7 +11,7 @@ int main() {
     cout << "moved to origin" << endl;
     usleep(1000000);
     cout << "going to move 10,0,5" << endl;
-    ik.move(10, 0, 5, 0, 0, 0);
+    ik.move(10, 0, 5, 0, 0, 0, false);
     cout << "moved 10,0,5" << endl;
     usleep(1000000);
 }

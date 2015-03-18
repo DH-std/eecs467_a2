@@ -447,7 +447,7 @@ cout << "ball placed" << endl;
                       const ttt_turn_t *msg)
         {
             //check if our turn
-            cout << " tttHandler msg->turn " << msg->turn << " my_turn_num " << my_turn_num << endl;
+            // cout << " tttHandler msg->turn " << msg->turn << " my_turn_num " << my_turn_num << endl;
             if (init_done && (((red == true) && (msg->turn == my_turn_num)) or ((red == false) && (msg->turn != my_turn_num))) ){
                 other_turn_num = msg->turn;
                 run_ttt();
@@ -509,8 +509,8 @@ int main(int argc, char *argv[]){
         state.init();
 
     cout << "state inited" << endl;
-    // char t;
     while(1) {
+        // char t;
         // cout << "press any key to run" << endl;
         // cin >> t;
         // state.run_ttt();

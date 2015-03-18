@@ -368,6 +368,7 @@ bool a2_board_state::update_board(vector<region>& regList, char turn_in) {
 }
 
 void a2_board_state::update_pick(vector<region>& regList) {
+    to_pick.clear();
     to_pick.resize(regList.size());
 
     for (unsigned int i = 0; i < regList.size(); ++i) {
@@ -395,6 +396,7 @@ bool a2_board_state::detect() {
 // cout << "initing pick detector" << endl;
     blob_detector* off_board;
 
+cout << ">>>>>>>>>.board_state turn " << turn << endl;
     if (turn == 'R') {
         off_board = new blob_detector(im_pick, HSV_R[0], HSV_R[1], HSV_R[2], HSV_R[3], HSV_R[4], HSV_R[5]);
     }
@@ -405,11 +407,11 @@ bool a2_board_state::detect() {
 
 // cout << "done init blob detector" << endl;
 
-// cout << "processing red" << endl;
+cout << "processing red" << endl;
     red_board.process();
-// cout << "processing green" << endl;
+cout << "processing green" << endl;
     green_board.process();
-// cout << "processing off board" << endl;
+cout << "processing off board" << endl;
     off_board->process();
 
 // cout << "done process blob detector" << endl;

@@ -56,7 +56,8 @@ public:
     vector<double> arm_pos;
 
     a2_inverse_kinematics();
-    void move(double x, double y, double z, double tilt, double rotate, double grip);
+    void move(double x, double y, double z, double tilt, double rotate, double grip, bool compensate);
+    // void move(double x, double y, double z, double tilt, double rotate, double grip);
     void move(double x, double y, double z, double grip);
     void move_origin(double grip);
     void limp();

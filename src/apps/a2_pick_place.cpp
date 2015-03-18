@@ -1,33 +1,33 @@
 #include "a2_pick_place.h"
 
 void a2_pick_place::pick(double x, double y) {
-    x*= 0.80;
-    y*= 0.80;
+    // x*= 0.90;
+    // y*= 0.90;
 
 cout << " x " << x << " y " << y << endl;
 
-    ik.move(x, y, 8, BIG_OPEN_HAND);
+    ik.move(x, y, 8, 0, 0, BIG_OPEN_HAND, true);
     usleep(1000000);
-    ik.move(x, y, 1.25, BIG_OPEN_HAND);
+    ik.move(x, y, 1.25, 0, 0, BIG_OPEN_HAND, true);
     usleep(100000);
-    ik.move(x, y, 1.25, SMALL_OPEN_HAND);
+    ik.move(x, y, 1.25, 0, 0, SMALL_OPEN_HAND, true);
     usleep(100000);
-    ik.move(x, y, 1.25, CLOSE_HAND);
+    ik.move(x, y, 1.25, 0, 0, CLOSE_HAND, true);
     usleep(1000000);
     ik.move_origin(CLOSE_HAND);
     usleep(1000000);
 }
 
 void a2_pick_place::place(double x, double y) {
-    ik.move(x, y, 8, CLOSE_HAND);
+    ik.move(x, y, 8, 0, 0, CLOSE_HAND, false);
     usleep(1000000);
-    ik.move(x, y, 3, CLOSE_HAND);
+    ik.move(x, y, 3, 0, 0, CLOSE_HAND, false);
     usleep(250000);
-    ik.move(x, y, 2, CLOSE_HAND);
+    ik.move(x, y, 2, 0, 0, CLOSE_HAND, false);
     usleep(250000);
-    ik.move(x, y, 3, SMALL_OPEN_HAND);
+    ik.move(x, y, 3, 0, 0, SMALL_OPEN_HAND, false);
     usleep(250000);
-    ik.move(x, y, 8, SMALL_OPEN_HAND);
+    ik.move(x, y, 8, 0, 0, SMALL_OPEN_HAND, false);
     usleep(250000);
     ik.move_origin(SMALL_OPEN_HAND);
     usleep(1000000);

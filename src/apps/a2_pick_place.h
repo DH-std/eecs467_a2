@@ -38,7 +38,7 @@ const int HAND_SERVO = 5;
 // const string status_channel = "ARM_STATUS";    
 
 const double CLOSE_HAND = 1.56;
-const double BIG_OPEN_HAND = 0.5;
+const double BIG_OPEN_HAND = 0.6;
 const double SMALL_OPEN_HAND = 1.3;
 
 // const double SPEED = 0.05;
